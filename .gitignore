@@ -53,3 +53,6 @@ logs/
 .env
 .env.local
 .env.*.local
+
+# Process files
+*.pid

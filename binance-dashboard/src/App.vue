@@ -3,15 +3,45 @@
     <header class="header">
       <h1>📊 币安实时行情 Dashboard</h1>
       <div class="symbol-selector">
-        <select v-model="selectedSymbol" @change="onSymbolChange">
-          <option value="BTCUSDT">BTC/USDT</option>
-          <option value="ETHUSDT">ETH/USDT</option>
-          <option value="BNBUSDT">BNB/USDT</option>
-          <option value="SOLUSDT">SOL/USDT</option>
-          <option value="XRPUSDT">XRP/USDT</option>
-          <option value="ADAUSDT">ADA/USDT</option>
-          <option value="DOGEUSDT">DOGE/USDT</option>
-        </select>
+        <div class="search-wrapper" ref="searchWrapper">
+          <input
+            type="text"
+            class="search-input"
+            v-model="searchQuery"
+            @focus="showDropdown = true"
+            @input="onSearchInput"
+            :placeholder="selectedSymbol ? formatSymbol(selectedSymbol) : '选择交易对...'"
+          />
+          <div v-if="showDropdown" class="dropdown">
+            <div class="dropdown-section" v-if="searchQuery === ''">
+              <div class="dropdown-label">常用交易对</div>
+              <div
+                v-for="symbol in defaultSymbols"
+                :key="symbol"
+                class="dropdown-item"
+                :class="{ active: selectedSymbol === symbol }"
+                @click="selectSymbol(symbol)"
+              >
+                {{ formatSymbol(symbol) }}
+              </div>
+            </div>
+            <div class="dropdown-section" v-if="filteredSymbols.length > 0">
+              <div class="dropdown-label" v-if="searchQuery !== ''">搜索结果 ({{ filteredSymbols.length }})</div>
+              <div
+                v-for="symbol in filteredSymbols"
+                :key="symbol.symbol"
+                class="dropdown-item"
+                :class="{ active: selectedSymbol === symbol.symbol }"
+                @click="selectSymbol(symbol.symbol)"
+              >
+                {{ formatSymbol(symbol.symbol) }}
+              </div>
+            </div>
+            <div class="dropdown-empty" v-if="searchQuery !== '' && filteredSymbols.length === 0">
+              未找到匹配的交易对
+            </div>
+          </div>
+        </div>
         <button class="refresh-btn" @click="fetchAllData" :disabled="loading">
           {{ loading ? '刷新中...' : '🔄 刷新' }}
         </button>
@@ -149,129 +179,146 @@
         </div>
       </section>
 
-      <!-- TradingView K线图表 -->
-      <section class="chart-section">
-        <div class="section-header">
-          <h2>K线走势图</h2>
-          <div class="chart-controls">
-            <div class="interval-selector">
-              <button
-                v-for="int in intervals"
-                :key="int.value"
-                :class="['interval-btn', selectedInterval === int.value ? 'active' : '']"
-                @click="changeInterval(int.value)"
-              >
-                {{ int.label }}
-              </button>
+      <!-- 图表和订单簿并排区域 -->
+      <section class="chart-orderbook-wrapper">
+        <div class="charts-area">
+          <!-- TradingView K线图表 -->
+          <div class="chart-section">
+            <div class="section-header">
+              <h2>K线走势图</h2>
+              <div class="chart-controls">
+                <div class="interval-selector">
+                  <button
+                    v-for="int in intervals"
+                    :key="int.value"
+                    :class="['interval-btn', selectedInterval === int.value ? 'active' : '']"
+                    @click="changeInterval(int.value)"
+                  >
+                    {{ int.label }}
+                  </button>
+                </div>
+                <div class="indicator-selector">
+                  <div class="indicator-checkboxes">
+                    <label class="ind-check">
+                      <input type="checkbox" value="ma" v-model="selectedIndicators" @change="updateIndicators" />
+                      <span>MA</span>
+                    </label>
+                    <label class="ind-check">
+                      <input type="checkbox" value="ema" v-model="selectedIndicators" @change="updateIndicators" />
+                      <span>EMA</span>
+                    </label>
+                    <label class="ind-check">
+                      <input type="checkbox" value="bollinger" v-model="selectedIndicators" @change="updateIndicators" />
+                      <span>布林带</span>
+                    </label>
+                    <label class="ind-check">
+                      <input type="checkbox" value="rsi" v-model="selectedIndicators" @change="updateIndicators" />
+                      <span>RSI</span>
+                    </label>
+                    <label class="ind-check">
+                      <input type="checkbox" value="macd" v-model="selectedIndicators" @change="updateIndicators" />
+                      <span>MACD</span>
+                    </label>
+                    <label class="ind-check">
+                      <input type="checkbox" value="volume" v-model="selectedIndicators" @change="updateIndicators" />
+                      <span>成交量</span>
+                    </label>
+                  </div>
+                  <!-- MA/EMA 参数选择 -->
+                  <div v-if="selectedIndicators.includes('ma') || selectedIndicators.includes('ema')" class="indicator-params">
+                    <span class="params-label">{{ selectedIndicators.includes('ema') ? 'EMA' : 'MA' }}周期:</span>
+                    <label v-for="param in (selectedIndicators.includes('ema') ? emaParams : maParams)" :key="param" class="param-check">
+                      <input type="checkbox" :value="param" v-model="selectedParams" @change="updateIndicators" />
+                      <span>{{ param }}</span>
+                    </label>
+                  </div>
+                  <!-- 布林带参数 -->
+                  <div v-if="selectedIndicators.includes('bollinger')" class="indicator-params">
+                    <label>
+                      <span>周期:</span>
+                      <input type="number" v-model.number="bollingerPeriod" @change="updateIndicators" min="5" max="50" style="width:50px" />
+                    </label>
+                    <label>
+                      <span>倍数:</span>
+                      <input type="number" v-model.number="bollingerStdDev" @change="updateIndicators" min="1" max="3" step="0.5" style="width:50px" />
+                    </label>
+                  </div>
+                  <!-- RSI参数 -->
+                  <div v-if="selectedIndicators.includes('rsi')" class="indicator-params">
+                    <label>
+                      <span>RSI周期:</span>
+                      <input type="number" v-model.number="rsiPeriod" @change="updateIndicators" min="5" max="30" style="width:50px" />
+                    </label>
+                  </div>
+                  <!-- ATR止盈止损参数 (始终显示) -->
+                  <div class="indicator-params atr-params">
+                    <label>
+                      <span>ATR倍数:</span>
+                      <input type="number" v-model.number="atrMultiplier" @change="updateIndicators" min="0.5" max="10" step="0.5" style="width:50px" />
+                    </label>
+                    <span class="atr-hint">上线: 价格 + {{ atrMultiplier }}×ATR | 下线: 价格 - {{ atrMultiplier }}×ATR</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="indicator-selector">
-              <div class="indicator-checkboxes">
-                <label class="ind-check">
-                  <input type="checkbox" value="ma" v-model="selectedIndicators" @change="updateIndicators" />
-                  <span>MA</span>
-                </label>
-                <label class="ind-check">
-                  <input type="checkbox" value="ema" v-model="selectedIndicators" @change="updateIndicators" />
-                  <span>EMA</span>
-                </label>
-                <label class="ind-check">
-                  <input type="checkbox" value="bollinger" v-model="selectedIndicators" @change="updateIndicators" />
-                  <span>布林带</span>
-                </label>
-                <label class="ind-check">
-                  <input type="checkbox" value="rsi" v-model="selectedIndicators" @change="updateIndicators" />
-                  <span>RSI</span>
-                </label>
-                <label class="ind-check">
-                  <input type="checkbox" value="macd" v-model="selectedIndicators" @change="updateIndicators" />
-                  <span>MACD</span>
-                </label>
-                <label class="ind-check">
-                  <input type="checkbox" value="volume" v-model="selectedIndicators" @change="updateIndicators" />
-                  <span>成交量</span>
-                </label>
-              </div>
-              <!-- MA/EMA 参数选择 -->
-              <div v-if="selectedIndicators.includes('ma') || selectedIndicators.includes('ema')" class="indicator-params">
-                <span class="params-label">{{ selectedIndicators.includes('ema') ? 'EMA' : 'MA' }}周期:</span>
-                <label v-for="param in (selectedIndicators.includes('ema') ? emaParams : maParams)" :key="param" class="param-check">
-                  <input type="checkbox" :value="param" v-model="selectedParams" @change="updateIndicators" />
-                  <span>{{ param }}</span>
-                </label>
-              </div>
-              <!-- 布林带参数 -->
-              <div v-if="selectedIndicators.includes('bollinger')" class="indicator-params">
+            <div class="chart-container main-chart">
+              <div id="tradingview-chart"></div>
+            </div>
+          </div>
+
+          <!-- 成交量 & RSI 图表 -->
+          <div class="chart-section volume-rsi-section">
+            <div class="section-header">
+              <h2>成交量 & RSI</h2>
+              <div class="show-hide">
                 <label>
-                  <span>周期:</span>
-                  <input type="number" v-model.number="bollingerPeriod" @change="updateIndicators" min="5" max="50" style="width:50px" />
+                  <input type="checkbox" v-model="showVolume" @change="updateVolumeChart" />
+                  成交量
                 </label>
                 <label>
-                  <span>倍数:</span>
-                  <input type="number" v-model.number="bollingerStdDev" @change="updateIndicators" min="1" max="3" step="0.5" style="width:50px" />
+                  <input type="checkbox" v-model="showRSI" @change="updateRSIChart" />
+                  RSI
                 </label>
               </div>
-              <!-- RSI参数 -->
-              <div v-if="selectedIndicators.includes('rsi')" class="indicator-params">
-                <label>
-                  <span>RSI周期:</span>
-                  <input type="number" v-model.number="rsiPeriod" @change="updateIndicators" min="5" max="30" style="width:50px" />
-                </label>
+            </div>
+            <div class="volume-rsi-container">
+              <div class="chart-container volume-chart" v-show="showVolume">
+                <div id="volume-chart"></div>
               </div>
-              <!-- ATR止盈止损参数 (始终显示) -->
-              <div class="indicator-params atr-params">
-                <label>
-                  <span>ATR倍数:</span>
-                  <input type="number" v-model.number="atrMultiplier" @change="updateIndicators" min="0.5" max="10" step="0.5" style="width:50px" />
-                </label>
-                <span class="atr-hint">上线: 价格 + {{ atrMultiplier }}×ATR | 下线: 价格 - {{ atrMultiplier }}×ATR</span>
+              <div class="chart-container rsi-chart" v-show="showRSI">
+                <div id="rsi-chart"></div>
+                <div class="rsi-zones">
+                  <div class="rsi-zone overbought">超买区 (>70)</div>
+                  <div class="rsi-zone neutral">正常区 (30-70)</div>
+                  <div class="rsi-zone oversold">超卖区 (<30)</div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div class="chart-container main-chart">
-          <div id="tradingview-chart"></div>
-        </div>
-      </section>
 
-      <!-- 成交量图表 -->
-      <section class="chart-section volume-section">
-        <div class="section-header">
-          <h2>成交量</h2>
-          <div class="show-hide">
-            <label>
-              <input type="checkbox" v-model="showVolume" @change="updateVolumeChart" />
-              显示
-            </label>
+          <!-- MACD图表 -->
+          <div class="chart-section macd-section">
+            <div class="section-header">
+              <h2>MACD (12, 26, 9)</h2>
+              <div class="show-hide">
+                <label>
+                  <input type="checkbox" v-model="showMACD" @change="updateMACDChart" />
+                  显示
+                </label>
+              </div>
+            </div>
+            <div class="chart-container macd-chart">
+              <div id="macd-chart"></div>
+            </div>
           </div>
         </div>
-        <div class="chart-container volume-chart">
-          <div id="volume-chart"></div>
-        </div>
-      </section>
 
-      <!-- MACD图表 -->
-      <section class="chart-section macd-section">
-        <div class="section-header">
-          <h2>MACD (12, 26, 9)</h2>
-          <div class="show-hide">
-            <label>
-              <input type="checkbox" v-model="showMACD" @change="updateMACDChart" />
-              显示
-            </label>
-          </div>
-        </div>
-        <div class="chart-container macd-chart">
-          <div id="macd-chart"></div>
-        </div>
-      </section>
-
-      <!-- 订单簿和最新成交 -->
-      <section class="data-section">
-        <div class="orderbook-container">
+        <!-- 订单簿 (右侧) -->
+        <div class="orderbook-sidebar">
           <h2>📖 订单簿</h2>
           <div class="orderbook">
             <div class="orderbook-header">
-              <span>价格 (USDT)</span>
+              <span>价格</span>
               <span>数量</span>
             </div>
             <div class="asks">
@@ -293,20 +340,66 @@
             </div>
           </div>
         </div>
+      </section>
 
-        <div class="trades-container">
-          <h2>⚡ 最新成交</h2>
-          <div class="trades">
-            <div class="trades-header">
-              <span>价格</span>
-              <span>数量</span>
-              <span>时间</span>
+      <!-- 智能分析时间线 -->
+      <section class="analysis-section">
+        <div class="analysis-header">
+          <h2>🧠 智能趋势分析</h2>
+          <span class="analysis-subtitle">基于 1H/4H/1D 多周期趋势追踪</span>
+        </div>
+        <div class="timeline-container">
+          <div class="timeline-track">
+            <div
+              v-for="(node, index) in trendNodes"
+              :key="index"
+              :class="['timeline-node', node.direction, { current: node.isCurrent }]"
+            >
+              <div class="node-connector" v-if="index < trendNodes.length - 1">
+                <div class="connector-line" :class="node.direction"></div>
+                <div class="connector-arrow">→</div>
+              </div>
+              <div class="node-dot">
+                <span class="node-icon">{{ node.direction === 'bullish' ? '↗' : '↘' }}</span>
+              </div>
+              <div class="node-card">
+                <div class="node-header">
+                  <span class="node-type">{{ node.direction === 'bullish' ? '多头趋势' : '空头趋势' }}</span>
+                  <span class="node-time">{{ node.timeStr }}</span>
+                </div>
+                <div class="node-tf-status" v-if="node.tfStatus">{{ node.tfStatus }}</div>
+                <div class="node-metrics">
+                  <div class="metric">
+                    <span class="metric-label">持续时间</span>
+                    <span class="metric-value large">{{ node.duration }}</span>
+                  </div>
+                  <div class="metric">
+                    <span class="metric-label">涨跌幅度</span>
+                    <span :class="['metric-value', 'large', parseFloat(node.changePercent) >= 0 ? 'positive' : 'negative']">
+                      {{ node.changePercent >= 0 ? '+' : '' }}{{ node.changePercent }}%
+                    </span>
+                  </div>
+                </div>
+                <div class="node-metrics">
+                  <div class="metric">
+                    <span class="metric-label">入场价格</span>
+                    <span class="metric-value">{{ node.entryPrice }}</span>
+                  </div>
+                  <div class="metric">
+                    <span class="metric-label">当前价格</span>
+                    <span class="metric-value">{{ node.currentPrice }}</span>
+                  </div>
+                  <div class="metric">
+                    <span class="metric-label">趋势阶段</span>
+                    <span :class="['metric-value', node.stageClass]">{{ node.stageLabel }}</span>
+                  </div>
+                </div>
+                <div class="node-badge" v-if="node.isCurrent">进行中</div>
+              </div>
             </div>
-            <div v-for="trade in trades" :key="trade.id" :class="['trade-row', trade.isBuyerMaker ? 'sell' : 'buy']">
-              <span class="price">{{ parseFloat(trade.price).toFixed(2) }}</span>
-              <span class="qty">{{ parseFloat(trade.qty).toFixed(4) }}</span>
-              <span class="time">{{ formatTime(trade.time) }}</span>
-            </div>
+          </div>
+          <div v-if="trendNodes.length === 0" class="no-data">
+            <span>暂无趋势分析数据，请等待数据加载...</span>
           </div>
         </div>
       </section>
@@ -340,6 +433,7 @@ const rsiPeriod = ref(14)
 const atrMultiplier = ref(3.5)
 const showVolume = ref(true)
 const showMACD = ref(true)
+const showRSI = ref(true)
 
 // EMA/MA 参数选项
 const emaParams = [7, 12, 25, 26, 50, 99, 144, 169, 200, 230]
@@ -434,11 +528,68 @@ let rsiSeries = null
 let atrUpperSeries = null  // ATR上线 (价格 + n*ATR)
 let atrLowerSeries = null  // ATR下线 (价格 - n*ATR)
 
+// RSI独立图表
+let rsiChart = null
+let rsiLineSeries = null
+let rsiUpperBand = null
+let rsiLowerBand = null
+
 const tickerData = ref({ price: 0 })
 const ticker24h = ref({})
 const orderbook = ref({ bids: [], asks: [] })
 const klines = ref([])
 const trades = ref([])
+const trendNodes = ref([]) // 趋势节点历史
+const mtfKlines = ref({}) // 多周期K线数据用于趋势分析
+
+// 交易对搜索相关
+const searchQuery = ref('')
+const showDropdown = ref(false)
+const searchWrapper = ref(null)
+const allSymbols = ref([])
+const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT']
+
+// 过滤后的交易对列表
+const filteredSymbols = computed(() => {
+  if (!searchQuery.value) return []
+  const query = searchQuery.value.toUpperCase()
+  return allSymbols.value
+    .filter(s => s.symbol.includes(query) || s.baseAsset.includes(query))
+    .slice(0, 50) // 限制显示50个结果
+})
+
+const formatSymbol = (symbol) => {
+  if (!symbol) return ''
+  const base = symbol.replace('USDT', '')
+  return `${base}/USDT`
+}
+
+const selectSymbol = (symbol) => {
+  selectedSymbol.value = symbol
+  showDropdown.value = false
+  searchQuery.value = ''
+  onSymbolChange()
+}
+
+const onSearchInput = () => {
+  showDropdown.value = true
+}
+
+const fetchSymbols = async () => {
+  try {
+    const res = await axios.get('/api/symbols')
+    allSymbols.value = res.data
+  } catch (e) {
+    console.error('获取交易对列表失败', e)
+  }
+}
+
+// 点击外部关闭下拉框
+const handleClickOutside = (e) => {
+  if (searchWrapper.value && !searchWrapper.value.contains(e.target)) {
+    showDropdown.value = false
+  }
+}
 
 const intervals = [
   { label: '1分', value: '1m' },
@@ -549,9 +700,12 @@ const fetchTrades = async () => {
 const fetchMtfData = async () => {
   try {
     const res = await axios.get(`/api/klines-mtf/${selectedSymbol.value}`, {
-      params: { limit: 50 }
+      params: { limit: 200 }
     })
     const data = res.data
+
+    // 保存原始K线数据用于趋势分析
+    mtfKlines.value = data
 
     // 计算各周期趋势 (收盘价 > SMA20)
     const calcTrend = (klines) => {
@@ -795,6 +949,187 @@ const calculateDecision = () => {
     action,
     actionClass
   }
+
+  // 计算趋势历史节点
+  calculateTrendHistory()
+}
+
+// 计算历史趋势节点（基于多周期分析）
+const calculateTrendHistory = () => {
+  // 使用1h K线作为基础周期
+  const klines1h = mtfKlines.value['1h']
+  const klines4h = mtfKlines.value['4h']
+  const klines1d = mtfKlines.value['1d']
+
+  if (!klines1h || klines1h.length < 30) return
+
+  const closes1h = klines1h.map(k => parseFloat(k[4]))
+  const timestamps1h = klines1h.map(k => k[0])
+  const nodes = []
+
+  // 计算高周期趋势确认
+  const getHigherTFTrend = (klines) => {
+    if (!klines || klines.length < 20) return null
+    const closes = klines.map(k => parseFloat(k[4]))
+    const ema = calculateEmaValue(closes, 12)
+    const sma = calculateSmaValue(closes, 20)
+    return ema > sma ? 'bullish' : 'bearish'
+  }
+
+  let currentTrend = null
+  let trendStartIndex = 0
+  let trendStartPrice = 0
+  let confirmedBars = 0 // 确认的K线数量
+
+  // 遍历1h K线寻找趋势转折点（需要高周期确认）
+  for (let i = 30; i < klines1h.length; i++) {
+    const prevCloses = closes1h.slice(0, i + 1)
+    const ema = calculateEmaValue(prevCloses, 12)
+    const sma = calculateSmaValue(prevCloses, 20)
+
+    const isBullish = ema > sma
+    const isBearish = ema < sma
+
+    // 获取对应时间的高周期趋势
+    const trend4h = getHigherTFTrend(klines4h)
+    const trend1d = getHigherTFTrend(klines1d)
+
+    // 检测趋势变化（需要高周期同向确认）
+    if (currentTrend === null) {
+      currentTrend = isBullish ? 'bullish' : (isBearish ? 'bearish' : null)
+      if (currentTrend) {
+        trendStartIndex = i
+        trendStartPrice = closes1h[i]
+        confirmedBars = 1
+      }
+    } else if ((currentTrend === 'bullish' && isBearish) || (currentTrend === 'bearish' && isBullish)) {
+      // 趋势反转确认条件：高周期也同向
+      const newTrend = isBullish ? 'bullish' : 'bearish'
+      const higherTFConfirm = (newTrend === trend4h) || (newTrend === trend1d)
+
+      // 只有高周期确认或持续超过3根K线才确认反转
+      if (higherTFConfirm || confirmedBars >= 3) {
+        // 记录前一个趋势节点
+        const endIndex = i - 1
+        const endPrice = closes1h[endIndex]
+        const changePercent = ((endPrice - trendStartPrice) / trendStartPrice * 100).toFixed(2)
+        const bars = endIndex - trendStartIndex + 1
+
+        // 计算持续时间（1h周期）
+        const startTime = timestamps1h[trendStartIndex]
+        const endTime = timestamps1h[endIndex]
+        const elapsedMs = endTime - startTime
+        const totalMins = Math.floor(elapsedMs / 60000)
+        const duration = formatDuration(totalMins)
+
+        // 趋势阶段（基于持续时间）
+        const days = elapsedMs / (1000 * 60 * 60 * 24)
+        let stageLabel = '稳定期'
+        let stageClass = 'stable'
+        if (days <= 1) {
+          stageLabel = '爆发期'
+          stageClass = 'bullish'
+        } else if (days > 5) {
+          stageLabel = '衰竭期'
+          stageClass = 'warning'
+        }
+
+        // 获取高周期趋势状态
+        const tfStatus = `4H: ${trend4h === 'bullish' ? '↑' : '↓'} | 1D: ${trend1d === 'bullish' ? '↑' : '↓'}`
+
+        nodes.push({
+          direction: currentTrend,
+          timeStr: formatTimestamp(timestamps1h[trendStartIndex]),
+          duration,
+          bars,
+          entryPrice: trendStartPrice.toFixed(2),
+          currentPrice: endPrice.toFixed(2),
+          changePercent,
+          stageLabel,
+          stageClass,
+          tfStatus
+        })
+
+        // 开始新趋势
+        currentTrend = newTrend
+        trendStartIndex = i
+        trendStartPrice = closes1h[i]
+        confirmedBars = 1
+      } else {
+        // 未确认，增加计数
+        confirmedBars++
+      }
+    } else {
+      confirmedBars++
+    }
+  }
+
+  // 添加当前进行中的趋势
+  if (currentTrend && trendStartIndex < klines1h.length - 1) {
+    const endPrice = closes1h[closes1h.length - 1]
+    const changePercent = ((endPrice - trendStartPrice) / trendStartPrice * 100).toFixed(2)
+    const bars = klines1h.length - 1 - trendStartIndex + 1
+
+    const startTime = timestamps1h[trendStartIndex]
+    const endTime = timestamps1h[timestamps1h.length - 1]
+    const elapsedMs = endTime - startTime
+    const totalMins = Math.floor(elapsedMs / 60000)
+    const duration = formatDuration(totalMins)
+
+    const days = elapsedMs / (1000 * 60 * 60 * 24)
+    let stageLabel = '稳定期'
+    let stageClass = 'stable'
+    if (days <= 1) {
+      stageLabel = '爆发期'
+      stageClass = 'bullish'
+    } else if (days > 5) {
+      stageLabel = '衰竭期'
+      stageClass = 'warning'
+    }
+
+    const trend4h = getHigherTFTrend(klines4h)
+    const trend1d = getHigherTFTrend(klines1d)
+    const tfStatus = `4H: ${trend4h === 'bullish' ? '↑' : '↓'} | 1D: ${trend1d === 'bullish' ? '↑' : '↓'}`
+
+    nodes.push({
+      direction: currentTrend,
+      timeStr: formatTimestamp(timestamps1h[trendStartIndex]),
+      duration,
+      bars,
+      entryPrice: trendStartPrice.toFixed(2),
+      currentPrice: endPrice.toFixed(2),
+      changePercent,
+      stageLabel,
+      stageClass,
+      tfStatus,
+      isCurrent: true
+    })
+  }
+
+  // 只保留最近8个节点，按时间正序（最新的在右边）
+  trendNodes.value = nodes.slice(-8)
+}
+
+// 格式化持续时间
+const formatDuration = (totalMins) => {
+  const days = Math.floor(totalMins / 1440)
+  const hours = Math.floor((totalMins % 1440) / 60)
+  const mins = totalMins % 60
+  let result = ''
+  if (days > 0) result += days + '天'
+  if (hours > 0) result += (result ? ' ' : '') + hours + '时'
+  result += (result ? ' ' : '') + mins + '分'
+  return result
+}
+
+// 格式化时间戳
+const formatTimestamp = (ts) => {
+  const date = new Date(ts)
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  const hours = date.getHours().toString().padStart(2, '0')
+  const mins = date.getMinutes().toString().padStart(2, '0')
+  return `${month}/${day} ${hours}:${mins}`
 }
 
 // 辅助计算函数
@@ -1170,6 +1505,7 @@ const updateChart = () => {
   updateIndicators()
   updateVolumeChart()
   updateMACDChart()
+  updateRSIChart()
 }
 
 // 更新成交量图表
@@ -1251,6 +1587,130 @@ const updateMACDChart = () => {
 
   if (macdChart) {
     macdChart.timeScale().fitContent()
+  }
+}
+
+// 计算RSI
+const calculateRSI = (period = 14) => {
+  if (!klines.value.length || klines.value.length < period + 1) return []
+
+  const closes = klines.value.map(k => parseFloat(k[4]))
+  const rsiValues = []
+
+  // 计算价格变化
+  const changes = []
+  for (let i = 1; i < closes.length; i++) {
+    changes.push(closes[i] - closes[i - 1])
+  }
+
+  // 计算初始平均涨跌幅
+  let avgGain = 0
+  let avgLoss = 0
+  for (let i = 0; i < period; i++) {
+    if (changes[i] > 0) {
+      avgGain += changes[i]
+    } else {
+      avgLoss += Math.abs(changes[i])
+    }
+  }
+  avgGain /= period
+  avgLoss /= period
+
+  // 第一个RSI值
+  const firstRSI = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss))
+  rsiValues.push({ time: klines.value[period][0] / 1000, value: firstRSI })
+
+  // 后续RSI值使用平滑计算
+  for (let i = period; i < changes.length; i++) {
+    const change = changes[i]
+    if (change > 0) {
+      avgGain = (avgGain * (period - 1) + change) / period
+      avgLoss = (avgLoss * (period - 1)) / period
+    } else {
+      avgGain = (avgGain * (period - 1)) / period
+      avgLoss = (avgLoss * (period - 1) + Math.abs(change)) / period
+    }
+
+    const rsi = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss))
+    rsiValues.push({ time: klines.value[i + 1][0] / 1000, value: rsi })
+  }
+
+  return rsiValues
+}
+
+// 初始化RSI图表
+const initRSIChart = () => {
+  const container = document.getElementById('rsi-chart')
+  if (!container) return
+
+  rsiChart = createChart(container, {
+    width: container.clientWidth,
+    height: 140,
+    layout: {
+      background: { type: 'solid', color: '#161b22' },
+      textColor: '#8b949e'
+    },
+    grid: {
+      vertLines: { color: '#21262d' },
+      horzLines: { color: '#21262d' }
+    },
+    rightPriceScale: {
+      borderColor: '#30363d',
+      scaleMargins: { top: 0.1, bottom: 0.1 }
+    },
+    timeScale: {
+      borderColor: '#30363d',
+      visible: false
+    },
+    crosshair: {
+      mode: CrosshairMode.Normal
+    }
+  })
+
+  // 超买线 (70)
+  rsiUpperBand = rsiChart.addLineSeries({
+    color: '#fc5c7d',
+    lineWidth: 1,
+    lineStyle: 2, // dashed
+    priceLineVisible: false,
+    crosshairMarkerVisible: false
+  })
+
+  // 超卖线 (30)
+  rsiLowerBand = rsiChart.addLineSeries({
+    color: '#26de81',
+    lineWidth: 1,
+    lineStyle: 2, // dashed
+    priceLineVisible: false,
+    crosshairMarkerVisible: false
+  })
+
+  // RSI线
+  rsiLineSeries = rsiChart.addLineSeries({
+    color: '#9b59b6',
+    lineWidth: 2,
+    priceLineVisible: false
+  })
+}
+
+// 更新RSI图表
+const updateRSIChart = () => {
+  if (!rsiLineSeries || !klines.value.length) return
+
+  const rsiData = calculateRSI(rsiPeriod.value)
+  rsiLineSeries.setData(rsiData)
+  rsiLineSeries.applyOptions({ visible: showRSI.value })
+
+  // 设置超买超卖线
+  if (rsiUpperBand && rsiLowerBand && rsiData.length > 0) {
+    const upperData = rsiData.map(d => ({ time: d.time, value: 70 }))
+    const lowerData = rsiData.map(d => ({ time: d.time, value: 30 }))
+    rsiUpperBand.setData(upperData)
+    rsiLowerBand.setData(lowerData)
+  }
+
+  if (rsiChart) {
+    rsiChart.timeScale().fitContent()
   }
 }
 
@@ -1437,8 +1897,11 @@ const toggleAutoRefresh = () => {
 onMounted(async () => {
   await nextTick()
   initChart()
+  initRSIChart()
   fetchAllData()
+  fetchSymbols() // 加载交易对列表
   refreshTimer = setInterval(fetchAllData, 5000)
+  document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
@@ -1446,6 +1909,8 @@ onUnmounted(() => {
   if (chart) chart.remove()
   if (volumeChart) volumeChart.remove()
   if (macdChart) macdChart.remove()
+  if (rsiChart) rsiChart.remove()
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -1477,7 +1942,11 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.symbol-selector select {
+.search-wrapper {
+  position: relative;
+}
+
+.search-input {
   padding: 10px 16px;
   font-size: 16px;
   background: #21262d;
@@ -1485,6 +1954,60 @@ onUnmounted(() => {
   border: 1px solid #30363d;
   border-radius: 8px;
   cursor: pointer;
+  width: 180px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: #f0b90b;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  width: 240px;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.dropdown-section {
+  padding: 8px 0;
+}
+
+.dropdown-label {
+  padding: 8px 16px 4px;
+  font-size: 12px;
+  color: #8b949e;
+  border-bottom: 1px solid #30363d;
+}
+
+.dropdown-item {
+  padding: 10px 16px;
+  cursor: pointer;
+  color: #e6edf3;
+  transition: background 0.15s;
+}
+
+.dropdown-item:hover {
+  background: #30363d;
+}
+
+.dropdown-item.active {
+  background: #f0b90b;
+  color: #0d1117;
+}
+
+.dropdown-empty {
+  padding: 20px;
+  text-align: center;
+  color: #8b949e;
 }
 
 .refresh-btn {
@@ -2060,8 +2583,57 @@ onUnmounted(() => {
   margin-top: 16px;
 }
 
+.volume-rsi-section {
+  margin-top: 16px;
+}
+
+.volume-rsi-container {
+  display: flex;
+  gap: 16px;
+}
+
 .volume-chart {
-  height: 120px;
+  flex: 1;
+  height: 140px;
+  min-width: 0;
+}
+
+.rsi-chart {
+  flex: 1;
+  height: 140px;
+  min-width: 0;
+  position: relative;
+}
+
+.rsi-zones {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10px;
+}
+
+.rsi-zone {
+  padding: 2px 6px;
+  border-radius: 3px;
+  opacity: 0.8;
+}
+
+.rsi-zone.overbought {
+  background: rgba(252, 92, 125, 0.3);
+  color: #fc5c7d;
+}
+
+.rsi-zone.oversold {
+  background: rgba(38, 222, 129, 0.3);
+  color: #26de81;
+}
+
+.rsi-zone.neutral {
+  background: rgba(139, 148, 158, 0.2);
+  color: #8b949e;
 }
 
 .macd-section {
@@ -2353,17 +2925,317 @@ onUnmounted(() => {
   }
 }
 
-.orderbook-container, .trades-container {
+/* 图表和订单簿并排布局 */
+.chart-orderbook-wrapper {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.charts-area {
+  flex: 3;
+  min-width: 0;
+}
+
+.orderbook-sidebar {
+  flex: 1;
+  min-width: 200px;
+  max-width: 280px;
+  background: #161b22;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #21262d;
+  display: flex;
+  flex-direction: column;
+}
+
+.orderbook-sidebar h2 {
+  font-size: 16px;
+  margin-bottom: 12px;
+  color: #e6edf3;
+}
+
+.trades-section {
   background: #161b22;
   border-radius: 16px;
   padding: 20px;
   border: 1px solid #21262d;
 }
 
-.orderbook-container h2, .trades-container h2 {
+.trades-section h2 {
   font-size: 18px;
   margin-bottom: 16px;
   color: #e6edf3;
+}
+
+/* 智能分析板块样式 */
+.analysis-section {
+  background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+  border-radius: 16px;
+  padding: 24px 24px 24px 16px;
+  border: 1px solid #21262d;
+}
+
+.analysis-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.analysis-header h2 {
+  font-size: 18px;
+  color: #e6edf3;
+  margin: 0;
+}
+
+.analysis-subtitle {
+  font-size: 13px;
+  color: #8b949e;
+}
+
+.timeline-container {
+  position: relative;
+  overflow-x: auto;
+  padding: 10px 0 15px;
+  scrollbar-width: thin;
+  scrollbar-color: #30363d transparent;
+}
+
+.timeline-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.timeline-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.timeline-container::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 3px;
+}
+
+.timeline-track {
+  display: flex;
+  gap: 0;
+  padding: 10px 8px;
+  min-width: max-content;
+}
+
+.timeline-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 220px;
+  padding: 0 12px;
+}
+
+.node-connector {
+  position: absolute;
+  top: 18px;
+  right: -12px;
+  display: flex;
+  align-items: center;
+  z-index: 0;
+}
+
+.connector-line {
+  width: 20px;
+  height: 2px;
+}
+
+.connector-line.bullish { background: linear-gradient(90deg, #26de81, rgba(38, 222, 129, 0.3)); }
+.connector-line.bearish { background: linear-gradient(90deg, #fc5c7d, rgba(252, 92, 125, 0.3)); }
+
+.connector-arrow {
+  font-size: 12px;
+  color: #8b949e;
+}
+
+.node-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.timeline-node.bullish .node-dot {
+  background: linear-gradient(135deg, #26de81 0%, #20bf6b 100%);
+  box-shadow: 0 4px 16px rgba(38, 222, 129, 0.5);
+}
+
+.timeline-node.bearish .node-dot {
+  background: linear-gradient(135deg, #fc5c7d 0%, #eb3b5a 100%);
+  box-shadow: 0 4px 16px rgba(252, 92, 125, 0.5);
+}
+
+.timeline-node.current .node-dot {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(38, 222, 129, 0.5); }
+  50% { box-shadow: 0 4px 24px rgba(38, 222, 129, 0.8); }
+}
+
+.timeline-node.bearish.current .node-dot {
+  animation: pulse-bearish 2s infinite;
+}
+
+@keyframes pulse-bearish {
+  0%, 100% { box-shadow: 0 4px 16px rgba(252, 92, 125, 0.5); }
+  50% { box-shadow: 0 4px 24px rgba(252, 92, 125, 0.8); }
+}
+
+.timeline-node:hover .node-dot {
+  transform: scale(1.15);
+}
+
+.node-icon {
+  color: #fff;
+  font-weight: bold;
+}
+
+.node-card {
+  margin-top: 16px;
+  background: linear-gradient(180deg, #21262d 0%, #161b22 100%);
+  border-radius: 16px;
+  padding: 18px;
+  width: 100%;
+  border: 1px solid #30363d;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.timeline-node:hover .node-card {
+  border-color: #484f58;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.timeline-node.bullish .node-card {
+  border-top: 3px solid #26de81;
+}
+
+.timeline-node.bearish .node-card {
+  border-top: 3px solid #fc5c7d;
+}
+
+.timeline-node.current .node-card {
+  border-color: #f0b90b;
+  box-shadow: 0 0 20px rgba(240, 185, 11, 0.2);
+}
+
+.node-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.node-type {
+  font-size: 15px;
+  font-weight: 700;
+  color: #e6edf3;
+}
+
+.timeline-node.bullish .node-type { color: #26de81; }
+.timeline-node.bearish .node-type { color: #fc5c7d; }
+
+.node-time {
+  font-size: 12px;
+  color: #8b949e;
+  background: #0d1117;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.node-tf-status {
+  font-size: 11px;
+  color: #8b949e;
+  background: #0d1117;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  text-align: center;
+  border: 1px solid #21262d;
+}
+
+.node-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #0d1117;
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.metric-label {
+  font-size: 10px;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+
+.metric-value.large {
+  font-size: 16px;
+}
+
+.metric-value.positive { color: #26de81; }
+.metric-value.negative { color: #fc5c7d; }
+.metric-value.bullish { color: #26de81; }
+.metric-value.bearish { color: #fc5c7d; }
+.metric-value.warning { color: #f39c12; }
+.metric-value.stable { color: #3498db; }
+
+.node-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #0d1117;
+  background: #f0b90b;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.no-data {
+  text-align: center;
+  padding: 60px 20px;
+  color: #8b949e;
+  font-size: 14px;
+}
+
+@media (max-width: 1200px) {
+  .chart-orderbook-wrapper {
+    flex-direction: column;
+  }
+
+  .orderbook-sidebar {
+    max-width: 100%;
+  }
 }
 
 .orderbook-header, .trades-header {

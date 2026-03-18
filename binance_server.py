@@ -94,6 +94,26 @@ def get_exchange_info():
     data = safe_request(f"{BASE_URL}/exchangeInfo")
     return jsonify(data)
 
+@app.route('/api/symbols')
+def get_symbols():
+    """获取所有USDT交易对列表"""
+    data = safe_request(f"{BASE_URL}/exchangeInfo")
+    if "error" in data:
+        return jsonify(data)
+
+    symbols = []
+    for s in data.get("symbols", []):
+        # 只返回USDT交易对且状态为交易的
+        if s.get("quoteAsset") == "USDT" and s.get("status") == "TRADING":
+            symbols.append({
+                "symbol": s.get("symbol"),
+                "baseAsset": s.get("baseAsset"),
+                "quoteAsset": s.get("quoteAsset"),
+                "status": s.get("status")
+            })
+
+    return jsonify(symbols)
+
 if __name__ == '__main__':
     print("=" * 50)
     print("  币安数据API服务")
