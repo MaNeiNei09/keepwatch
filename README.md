@@ -10,6 +10,17 @@ Vue3 + Python Flask 实时行情展示应用
 ├── binance_server.py       # Flask API后端服务
 ├── binance-dashboard/      # Vue3前端项目
 │   ├── src/
+│   │   ├── components/     # Vue组件
+│   │   │   ├── cards/      # 卡片组件 (价格、仓位、周期、决策)
+│   │   │   ├── charts/     # 图表组件 (K线、MACD、RSI、成交量)
+│   │   │   └── common/     # 通用组件
+│   │   ├── composables/    # 组合式API逻辑
+│   │   │   ├── useChart.js        # K线图表逻辑
+│   │   │   ├── useDecision.js     # 交易决策逻辑
+│   │   │   ├── useIndicators.js   # 技术指标计算
+│   │   │   ├── useMarketData.js   # 市场数据获取
+│   │   │   └── useTrading.js      # 交易逻辑
+│   │   ├── styles/         # 样式文件
 │   │   ├── App.vue         # 主组件
 │   │   └── main.js         # 入口文件
 │   ├── package.json
@@ -53,9 +64,18 @@ npm run dev
 - ✅ 实时价格展示 (BTC/ETH/BNB/SOL/XRP/ADA/DOGE)
 - ✅ 24小时涨跌统计
 - ✅ K线走势图 (支持1分/5分/15分/1时/4时/1天)
+- ✅ MACD指标
+- ✅ RSI指标
 - ✅ 订单簿深度可视化
 - ✅ 最新成交记录
+- ✅ 智能交易信号分析
 - ✅ 自动刷新 (每5秒)
+
+## 技术栈
+
+- **前端**: Vue 3 + Vite + lightweight-charts
+- **后端**: Python Flask
+- **数据源**: Binance API
 
 ## 直接使用爬虫脚本
 
