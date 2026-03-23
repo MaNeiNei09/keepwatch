@@ -48,8 +48,24 @@
           </div>
         </div>
 
-        <!-- 左右分栏：做多/做空 | 决策+雷达 -->
+        <!-- 左右分栏：决策+雷达 | 做多/做空 -->
         <div class="checklist-grid">
+          <!-- 左侧：决策建议 + 全局雷达 -->
+          <div class="left-panels">
+            <div class="checklist-panel decision">
+              <DecisionPanel
+                :long-score="longScore"
+                :short-score="shortScore"
+                :analysis-data="analysisData"
+                :current-price="currentPrice"
+              />
+            </div>
+
+            <div class="checklist-panel radar">
+              <GlobalRadar @select-symbol="onRadarSelect" />
+            </div>
+          </div>
+
           <!-- 做多检查清单 -->
           <div class="checklist-panel long">
             <div class="panel-header">
@@ -78,22 +94,6 @@
               :current-price="currentPrice"
               :klines="klines"
             />
-          </div>
-
-          <!-- 右侧：决策建议 + 全局雷达 -->
-          <div class="right-panels">
-            <div class="checklist-panel decision">
-              <DecisionPanel
-                :long-score="longScore"
-                :short-score="shortScore"
-                :analysis-data="analysisData"
-                :current-price="currentPrice"
-              />
-            </div>
-
-            <div class="checklist-panel radar">
-              <GlobalRadar @select-symbol="onRadarSelect" />
-            </div>
           </div>
         </div>
       </template>
@@ -492,18 +492,18 @@ onMounted(() => {
   flex: 1;
 }
 
-/* 右侧面板容器 */
-.right-panels {
+/* 左侧面板容器 */
+.left-panels {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.right-panels .checklist-panel.decision {
+.left-panels .checklist-panel.decision {
   flex-shrink: 0;
 }
 
-.right-panels .checklist-panel.radar {
+.left-panels .checklist-panel.radar {
   flex: 1;
   min-height: 300px;
 }
@@ -550,12 +550,12 @@ onMounted(() => {
     grid-template-columns: 1fr 1fr;
   }
 
-  .right-panels {
+  .left-panels {
     grid-column: span 2;
     flex-direction: row;
   }
 
-  .right-panels .checklist-panel {
+  .left-panels .checklist-panel {
     flex: 1;
   }
 }
@@ -565,7 +565,7 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .right-panels {
+  .left-panels {
     grid-column: span 1;
     flex-direction: column;
   }
