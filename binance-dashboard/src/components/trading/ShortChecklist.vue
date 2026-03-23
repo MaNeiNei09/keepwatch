@@ -128,34 +128,6 @@
       </div>
     </div>
 
-    <!-- 做空专属检测 -->
-    <div class="check-section short-only">
-      <div class="section-header">
-        <span class="section-icon">🎯</span>
-        <span class="section-title">做空专属检测</span>
-      </div>
-      <div class="check-items">
-        <CheckItem
-          title="假突破确认"
-          :status="fakeBreakout.status"
-          :value="fakeBreakout.value"
-          :detail="fakeBreakout.detail"
-        />
-        <CheckItem
-          title="流动性枯竭预警"
-          :status="liquidityWarning.status"
-          :value="liquidityWarning.value"
-          :detail="liquidityWarning.detail"
-        />
-        <CheckItem
-          title="宏观利空事件倒计时"
-          :status="macroEvent.status"
-          :value="macroEvent.value"
-          :detail="macroEvent.detail"
-        />
-      </div>
-    </div>
-
     <!-- 参数与风控 -->
     <div class="check-section">
       <div class="section-header">
@@ -186,6 +158,34 @@
           :status="leverage.status"
           :value="leverage.value"
           :detail="leverage.detail"
+        />
+      </div>
+    </div>
+
+    <!-- 做空专属检测 -->
+    <div class="check-section short-only">
+      <div class="section-header">
+        <span class="section-icon">🎯</span>
+        <span class="section-title">做空专属检测</span>
+      </div>
+      <div class="check-items">
+        <CheckItem
+          title="假突破确认"
+          :status="fakeBreakout.status"
+          :value="fakeBreakout.value"
+          :detail="fakeBreakout.detail"
+        />
+        <CheckItem
+          title="流动性枯竭预警"
+          :status="liquidityWarning.status"
+          :value="liquidityWarning.value"
+          :detail="liquidityWarning.detail"
+        />
+        <CheckItem
+          title="宏观利空事件倒计时"
+          :status="macroEvent.status"
+          :value="macroEvent.value"
+          :detail="macroEvent.detail"
         />
       </div>
     </div>
