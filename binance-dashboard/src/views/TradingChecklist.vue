@@ -48,7 +48,7 @@
           </div>
         </div>
 
-        <!-- 左右分栏：做多/决策/做空 -->
+        <!-- 左右分栏：做多/做空 | 决策+雷达 -->
         <div class="checklist-grid">
           <!-- 做多检查清单 -->
           <div class="checklist-panel long">
@@ -62,16 +62,6 @@
               :analysis-data="analysisData"
               :current-price="currentPrice"
               :klines="klines"
-            />
-          </div>
-
-          <!-- 决策建议 -->
-          <div class="checklist-panel decision">
-            <DecisionPanel
-              :long-score="longScore"
-              :short-score="shortScore"
-              :analysis-data="analysisData"
-              :current-price="currentPrice"
             />
           </div>
 
@@ -89,6 +79,22 @@
               :klines="klines"
             />
           </div>
+
+          <!-- 右侧：决策建议 + 全局雷达 -->
+          <div class="right-panels">
+            <div class="checklist-panel decision">
+              <DecisionPanel
+                :long-score="longScore"
+                :short-score="shortScore"
+                :analysis-data="analysisData"
+                :current-price="currentPrice"
+              />
+            </div>
+
+            <div class="checklist-panel radar">
+              <GlobalRadar @select-symbol="onRadarSelect" />
+            </div>
+          </div>
         </div>
       </template>
     </div>
@@ -96,11 +102,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import LongChecklist from '@/components/trading/LongChecklist.vue'
 import ShortChecklist from '@/components/trading/ShortChecklist.vue'
 import DecisionPanel from '@/components/trading/DecisionPanel.vue'
+import GlobalRadar from '@/components/trading/GlobalRadar.vue'
 
 const API_BASE = 'http://localhost:5001/api'
 
@@ -136,6 +143,11 @@ const priceChangeClass = computed(() => {
 })
 
 const onSymbolChange = () => {
+  runAnalysis()
+}
+
+const onRadarSelect = (symbol) => {
+  selectedSymbol.value = symbol
   runAnalysis()
 }
 
@@ -451,6 +463,7 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
+  min-height: calc(100vh - 220px);
 }
 
 .checklist-panel {
@@ -472,6 +485,27 @@ onMounted(() => {
 
 .checklist-panel.short {
   border-top: 3px solid #f85149;
+}
+
+.checklist-panel.radar {
+  border-top: 3px solid #a371f7;
+  flex: 1;
+}
+
+/* 右侧面板容器 */
+.right-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.right-panels .checklist-panel.decision {
+  flex-shrink: 0;
+}
+
+.right-panels .checklist-panel.radar {
+  flex: 1;
+  min-height: 300px;
 }
 
 .panel-header {
@@ -516,8 +550,13 @@ onMounted(() => {
     grid-template-columns: 1fr 1fr;
   }
 
-  .checklist-panel.decision {
+  .right-panels {
     grid-column: span 2;
+    flex-direction: row;
+  }
+
+  .right-panels .checklist-panel {
+    flex: 1;
   }
 }
 
@@ -526,8 +565,9 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .checklist-panel.decision {
+  .right-panels {
     grid-column: span 1;
+    flex-direction: column;
   }
 
   .logic-architecture {
