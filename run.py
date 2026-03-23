@@ -65,13 +65,13 @@ def start_backend():
     """启动后端服务"""
     print("[1/2] 启动后端服务...")
     try:
-        # 检查5000端口是否被占用
+        # 检查5001端口是否被占用
         if platform.system() == "Windows":
             result = subprocess.run(['netstat', '-ano'], capture_output=True, text=True)
-            if ':5000' in result.stdout:
-                print("  ⚠ 后端服务端口5000已被占用，尝试关闭现有进程...")
+            if ':5001' in result.stdout:
+                print("  ⚠ 后端服务端口5001已被占用，尝试关闭现有进程...")
                 for line in result.stdout.split('\n'):
-                    if ':5000' in line and 'LISTENING' in line:
+                    if ':5001' in line and 'LISTENING' in line:
                         try:
                             pid = int(line.split()[-1])
                             subprocess.run(['taskkill', '/F', '/PID', str(pid)], capture_output=True)
@@ -150,11 +150,11 @@ def status_check():
     backend_running = is_process_running(backend_pid)
     frontend_running = is_process_running(frontend_pid)
 
-    print(f"后端服务 (5000): {'✅ 运行中' if backend_running else '❌ 已停止'}")
+    print(f"后端服务 (5001): {'✅ 运行中' if backend_running else '❌ 已停止'}")
     print(f"前端服务:        {'✅ 运行中' if frontend_running else '❌ 已停止'}")
 
     if backend_running:
-        print(f"  → 访问地址: http://localhost:5000")
+        print(f"  → 访问地址: http://localhost:5001")
     if frontend_running:
         # 尝试获取实际端口
         print(f"  → 访问地址: http://localhost:3000 (或3001/3002)")
@@ -173,7 +173,7 @@ def main():
   python run.py status  - 查看服务状态
 
 说明:
-  - 后端: http://localhost:5000
+  - 后端: http://localhost:5001
   - 前端: http://localhost:3000 (或自动分配的端口)
 
 """)
