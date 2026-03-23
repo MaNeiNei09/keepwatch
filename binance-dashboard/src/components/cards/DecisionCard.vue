@@ -64,7 +64,6 @@ defineProps({
   border-radius: 12px;
   padding: 12px;
   border: 1px solid #21262d;
-  height: 75%;
   display: flex;
   flex-direction: column;
 }

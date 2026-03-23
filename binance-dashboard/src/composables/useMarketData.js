@@ -2,7 +2,8 @@
 import { ref } from 'vue'
 import axios from 'axios'
 
-const BINANCE_API = 'https://api.binance.com/api/v3'
+// 使用后端代理API
+const API_BASE = '/api'
 
 // 状态
 const tickerData = ref({ price: 0 })
@@ -33,8 +34,8 @@ const formatNumber = (num) => {
 const fetchTicker = async (symbol) => {
   try {
     const [tickerRes, ticker24hRes] = await Promise.all([
-      axios.get(`${BINANCE_API}/ticker/price`, { params: { symbol } }),
-      axios.get(`${BINANCE_API}/ticker/24hr`, { params: { symbol } })
+      axios.get(`${API_BASE}/ticker/${symbol}`),
+      axios.get(`${API_BASE}/ticker/24h/${symbol}`)
     ])
     tickerData.value = tickerRes.data
     ticker24h.value = ticker24hRes.data
@@ -45,8 +46,8 @@ const fetchTicker = async (symbol) => {
 
 const fetchOrderbook = async (symbol, limit = 20) => {
   try {
-    const res = await axios.get(`${BINANCE_API}/depth`, {
-      params: { symbol, limit }
+    const res = await axios.get(`${API_BASE}/orderbook/${symbol}`, {
+      params: { limit }
     })
     orderbook.value = res.data
   } catch (error) {
@@ -56,8 +57,8 @@ const fetchOrderbook = async (symbol, limit = 20) => {
 
 const fetchKlines = async (symbol, interval, limit = 200) => {
   try {
-    const res = await axios.get(`${BINANCE_API}/klines`, {
-      params: { symbol, interval, limit }
+    const res = await axios.get(`${API_BASE}/klines/${symbol}`, {
+      params: { interval, limit }
     })
     klines.value = res.data
   } catch (error) {
@@ -67,10 +68,8 @@ const fetchKlines = async (symbol, interval, limit = 200) => {
 
 const fetchAllSymbols = async () => {
   try {
-    const res = await axios.get(`${BINANCE_API}/exchangeInfo`)
-    allSymbols.value = res.data.symbols
-      .filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING')
-      .map(s => ({ symbol: s.symbol, base: s.baseAsset, quote: s.quoteAsset }))
+    const res = await axios.get(`${API_BASE}/symbols`)
+    allSymbols.value = res.data
   } catch (error) {
     console.error('获取交易对列表失败:', error)
   }

@@ -1,12 +1,12 @@
 // 交易对选择相关状态和逻辑
 import { ref, computed } from 'vue'
+import { useMarketData } from './useMarketData'
 
 // 状态
 const selectedSymbol = ref('BTCUSDT')
 const searchQuery = ref('')
 const showDropdown = ref(false)
 const searchWrapper = ref(null)
-const allSymbols = ref([])
 const defaultSymbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'ADAUSDT', 'DOGEUSDT', 'AVAXUSDT']
 
 // 常用交易对
@@ -17,15 +17,6 @@ const popularSymbols = [
   { symbol: 'SOLUSDT', base: 'SOL', quote: 'USDT' },
   { symbol: 'XRPUSDT', base: 'XRP', quote: 'USDT' }
 ]
-
-// 计算属性
-const filteredSymbols = computed(() => {
-  if (!searchQuery.value) return []
-  const query = searchQuery.value.toUpperCase()
-  return allSymbols.value.filter(s =>
-    s.symbol.toUpperCase().includes(query)
-  ).slice(0, 10)
-})
 
 // 方法
 const selectSymbol = (symbol) => {
@@ -52,10 +43,6 @@ const getCoinIcon = (symbol) => {
   return icons[base] || '●'
 }
 
-const setAllSymbols = (symbols) => {
-  allSymbols.value = symbols
-}
-
 // 关闭下拉框
 const closeDropdown = (event) => {
   if (searchWrapper.value && !searchWrapper.value.contains(event.target)) {
@@ -64,6 +51,18 @@ const closeDropdown = (event) => {
 }
 
 export function useTrading() {
+  // 从 useMarketData 获取 allSymbols
+  const { allSymbols } = useMarketData()
+
+  // 计算属性
+  const filteredSymbols = computed(() => {
+    if (!searchQuery.value) return []
+    const query = searchQuery.value.toUpperCase()
+    return allSymbols.value.filter(s =>
+      s.symbol.toUpperCase().includes(query)
+    ).slice(0, 10)
+  })
+
   return {
     // 状态
     selectedSymbol,
@@ -82,7 +81,6 @@ export function useTrading() {
     formatSymbol,
     onSearchInput,
     getCoinIcon,
-    setAllSymbols,
     closeDropdown
   }
 }

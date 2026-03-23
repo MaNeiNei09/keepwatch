@@ -4,15 +4,13 @@ import { ref, reactive } from 'vue'
 // 高度配置
 const chartHeights = reactive({
   candle: 500,
-  volume: 140,
-  rsi: 140,
-  macd: 150,
-  rsi2: 140,
-  orderbook: 400
+  rsi: 120,
+  macd: 130,
+  rsi2: 120,
+  orderbook: 450
 })
 
 // 显示控制
-const showVolume = ref(true)
 const showMACD = ref(true)
 const showRSI = ref(true)
 
@@ -22,8 +20,7 @@ const updateChartHeight = (chartType) => {
   console.log('Updating height:', chartType, height)
 
   let containerId = ''
-  if (chartType === 'volume') containerId = 'volume-chart'
-  else if (chartType === 'rsi') containerId = 'rsi-chart'
+  if (chartType === 'rsi') containerId = 'rsi-chart'
   else if (chartType === 'macd') containerId = 'macd-chart'
   else if (chartType === 'candle') containerId = 'tradingview-chart'
   else if (chartType === 'orderbook') containerId = 'orderbook-container'
@@ -39,7 +36,6 @@ const updateChartHeight = (chartType) => {
 export function useChartConfig() {
   return {
     chartHeights,
-    showVolume,
     showMACD,
     showRSI,
     updateChartHeight

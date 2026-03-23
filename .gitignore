@@ -56,3 +56,9 @@ logs/
 
 # Process files
 *.pid
+
+# Database files
+data/
+*.db
+*.sqlite
+*.sqlite3

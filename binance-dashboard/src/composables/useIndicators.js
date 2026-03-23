@@ -35,12 +35,12 @@ const paramColors = {
 
 // 时间周期配置
 const intervals = [
-  { label: '1m', value: '1', desc: '1分钟' },
-  { label: '5m', value: '5', desc: '5分钟' },
-  { label: '15m', value: '15', desc: '15分钟' },
-  { label: '1H', value: '60', desc: '1小时' },
-  { label: '4H', value: '240', desc: '4小时' },
-  { label: '1D', value: '1D', desc: '1天' }
+  { label: '1m', value: '1m', desc: '1分钟' },
+  { label: '5m', value: '5m', desc: '5分钟' },
+  { label: '15m', value: '15m', desc: '15分钟' },
+  { label: '1H', value: '1h', desc: '1小时' },
+  { label: '4H', value: '4h', desc: '4小时' },
+  { label: '1D', value: '1d', desc: '1天' }
 ]
 
 // 计算MA

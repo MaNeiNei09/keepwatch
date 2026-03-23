@@ -2,6 +2,118 @@
 
 ---
 
+## [v2.1.0] - 2026-03-23
+
+### 新增功能
+
+#### 资讯与趋势分析板块
+- 市场概览页面重新布局：左侧 2/3 行情数据，右侧 1/3 资讯与分析
+- 新增资讯组件 `NewsFeed.vue`
+  - 支持分类筛选：全部/政策/市场/技术
+  - 展示资讯标题、摘要、标签、发布时间
+  - 从后端 API 加载近 30 天资讯数据
+- 新增 AI 分析组件 `AIAnalysis.vue`
+  - 市场情绪仪表（恐惧贪婪指数）
+  - 市场综合诊断分析
+  - 关键信号提示（看涨/看跌/中性）
+  - 重点币种分析（BTC/ETH/SOL）
+  - 操作建议列表
+
+#### 后端资讯服务
+- 新增 SQLite 资讯数据库 (`data/news.db`)
+  - 支持资讯的增删改查
+  - 自动初始化近一个月示例数据
+- 新增资讯 API 端点：
+  - `GET /api/news` - 获取资讯列表（支持类型/时间筛选）
+  - `GET /api/news/<id>` - 获取资讯详情
+  - `POST /api/news` - 添加资讯
+  - `PUT /api/news/<id>` - 更新资讯
+  - `DELETE /api/news/<id>` - 删除资讯
+  - `GET /api/news/stats` - 获取资讯统计
+
+### 优化
+- 移除交易详情页独立成交量组件（TradingView 已内置成交量显示）
+- 简化 `useChart.js` 配置，移除 volume 相关配置
+
+### 组件变更
+- 新增 `components/market/NewsFeed.vue`
+- 新增 `components/market/AIAnalysis.vue`
+- 删除 `components/charts/VolumeChart.vue`
+- 修改 `views/MarketDashboard.vue` 布局结构
+- 修改 `views/TradingPairDetail.vue` 移除成交量区块
+
+---
+
+## [v2.0.0] - 2026-03-19
+
+### 重大更新 (Major Update)
+
+#### 新增市场概览页面
+- 新增市场概览 Dashboard 页面，展示整体加密货币市场信息
+- 市场概览指标：总市值、24h交易量、BTC主导率、ETH主导率、活跃币种数量
+- 涨幅榜：展示24h涨幅最大的币种排行
+- 跌幅榜：展示24h跌幅最大的币种排行
+- 市场热力图：按市值大小和涨跌幅显示币种色块
+- 热门币种：基于交易量排序的热门币种列表
+- 快速访问：一键跳转常用交易对
+
+#### 路由系统
+- 引入 vue-router 实现多页面路由
+- 路由配置：
+  - `/` - 市场概览首页
+  - `/trading/:symbol?` - 交易对详情页
+
+#### 组件拆分重构
+- 新增 `views/` 目录存放页面组件
+  - `MarketDashboard.vue` - 市场概览页面
+  - `TradingPairDetail.vue` - 交易对详情页面（从 App.vue 重构）
+- 新增 `layout/` 目录存放布局组件
+  - `AppLayout.vue` - 主布局容器
+  - `AppHeader.vue` - 顶部导航栏（含全局搜索、导航链接）
+- 新增 `components/market/` 目录存放市场组件
+  - `MarketOverview.vue` - 市场概览卡片
+  - `TopGainers.vue` - 涨幅榜
+  - `TopLosers.vue` - 跌幅榜
+  - `MarketHeatmap.vue` - 市场热力图
+  - `TrendingCoins.vue` - 热门币种
+- 新增 `components/common/` 通用组件
+  - `SearchBox.vue` - 可复用搜索输入框
+  - `LoadingSpinner.vue` - 加载状态指示器
+
+#### Composables 扩展
+- 新增 `composables/useMarket.js` - 市场概览数据获取逻辑
+
+#### 后端 API 扩展
+- 新增市场数据 API 端点：
+  - `GET /api/market/global` - 全局市场指标
+  - `GET /api/market/gainers` - 涨幅榜
+  - `GET /api/market/losers` - 跌幅榜
+  - `GET /api/market/trending` - 热门币种
+  - `GET /api/market/heatmap` - 热力图数据
+
+### 目录结构
+```
+src/
+├── views/            # 页面组件
+│   ├── MarketDashboard.vue
+│   └── TradingPairDetail.vue
+├── layout/           # 布局组件
+│   ├── AppLayout.vue
+│   └── AppHeader.vue
+├── components/
+│   ├── charts/       # 图表组件
+│   ├── cards/        # 卡片组件
+│   ├── common/       # 通用组件
+│   └── market/       # 市场组件（新增）
+├── composables/      # 组合式API
+├── router/           # 路由配置（新增）
+├── styles/           # 样式文件
+├── App.vue           # 根组件
+└── main.js           # 入口文件
+```
+
+---
+
 ## [v1.2.0] - 2026-03-18
 
 ### 重构 (Refactoring)
@@ -95,5 +207,9 @@ src/
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| v2.1.0 | 2026-03-23 | 资讯与AI分析板块、后端资讯数据库服务 |
+| v2.0.0 | 2026-03-19 | 市场概览页面、路由系统、组件拆分重构 |
+| v1.2.0 | 2026-03-18 | App.vue 重构，使用新组件和 composables |
+| v1.1.0 | 2026-03-18 | 提取业务逻辑到 composables，组件拆分 |
 | v1.0.1 | 2026-03-18 | RSI和订单簿拖动点修复 |
 | v1.0.0 | 2026-03-18 | 初始版本：RSI拆分、动态高度调整、指标配置弹窗、拖拽调整 |
