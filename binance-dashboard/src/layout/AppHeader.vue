@@ -19,6 +19,9 @@
       >
         交易详情
       </router-link>
+      <router-link to="/checklist" class="nav-link" :class="{ active: $route.path === '/checklist' }">
+        交易检测
+      </router-link>
     </nav>
 
     <div class="header-right">

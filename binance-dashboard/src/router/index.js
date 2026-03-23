@@ -13,6 +13,12 @@ const routes = [
     component: () => import('@/views/TradingPairDetail.vue'),
     meta: { title: '交易对详情' },
     props: true
+  },
+  {
+    path: '/checklist',
+    name: 'TradingChecklist',
+    component: () => import('@/views/TradingChecklist.vue'),
+    meta: { title: '交易检测' }
   }
 ]
 
