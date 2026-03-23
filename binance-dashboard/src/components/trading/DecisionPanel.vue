@@ -157,7 +157,11 @@ const decisionDetail = computed(() => {
 
 <style scoped>
 .decision-panel {
-  padding: 16px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .panel-title {
