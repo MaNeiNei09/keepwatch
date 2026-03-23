@@ -40,16 +40,11 @@
         </section>
       </div>
 
-      <!-- 右侧：资讯与分析 (1/3) -->
+      <!-- 右侧：资讯 (1/3) -->
       <div class="info-section">
         <!-- 资讯板块 -->
         <section class="news-section">
           <NewsFeed />
-        </section>
-
-        <!-- AI 分析板块 -->
-        <section class="analysis-section">
-          <AIAnalysis />
         </section>
       </div>
     </div>
@@ -71,7 +66,6 @@ import TopLosers from '@/components/market/TopLosers.vue'
 import MarketHeatmap from '@/components/market/MarketHeatmap.vue'
 import TrendingCoins from '@/components/market/TrendingCoins.vue'
 import NewsFeed from '@/components/market/NewsFeed.vue'
-import AIAnalysis from '@/components/market/AIAnalysis.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const router = useRouter()
@@ -202,23 +196,14 @@ onUnmounted(() => {
   color: #000;
 }
 
-/* 右侧资讯分析区域 */
+/* 右侧资讯区域 */
 .info-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
   height: 100%;
   min-height: 0;
 }
 
 .news-section {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.analysis-section {
-  flex: 1;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -235,14 +220,11 @@ onUnmounted(() => {
   }
 
   .info-section {
-    flex-direction: row;
     height: auto;
     min-height: 400px;
   }
 
-  .news-section,
-  .analysis-section {
-    flex: 1;
+  .news-section {
     height: 100%;
   }
 }
@@ -253,12 +235,7 @@ onUnmounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .info-section {
-    flex-direction: column;
-  }
-
-  .news-section,
-  .analysis-section {
+  .news-section {
     height: 300px;
   }
 }

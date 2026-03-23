@@ -171,38 +171,15 @@
 
       <!-- 智能分析 -->
       <section class="analysis-section">
-        <div class="analysis-header">
-          <h2>🧠 智能趋势分析</h2>
-        </div>
-        <div class="timeline-container">
-          <div class="timeline-track">
-            <div
-              v-for="(node, index) in trendNodes"
-              :key="index"
-              :class="['timeline-node', node.direction, { current: node.isCurrent }]"
-            >
-              <div class="node-dot">
-                <span class="node-icon">{{ node.direction === 'bullish' ? '↗' : '↘' }}</span>
-              </div>
-              <div class="node-card">
-                <div class="node-header">
-                  <span class="node-type">{{ node.direction === 'bullish' ? '多头趋势' : '空头趋势' }}</span>
-                  <span class="node-time">{{ node.timeStr }}</span>
-                </div>
-                <div class="node-metrics">
-                  <div class="metric">
-                    <span class="metric-label">持续时间</span>
-                    <span class="metric-value">{{ node.duration }}</span>
-                  </div>
-                  <div class="metric">
-                    <span class="metric-label">涨跌幅度</span>
-                    <span class="metric-value">{{ node.changePercent }}%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <AIAnalysis
+          :symbol="selectedSymbol"
+          :ticker-data="tickerData"
+          :ticker-24h="ticker24h"
+          :klines="klines"
+          :orderbook="orderbook"
+          :decision="decision"
+          :mtf-data="mtfData"
+        />
       </section>
     </div>
 
@@ -225,6 +202,7 @@ import PriceCard from '@/components/cards/PriceCard.vue'
 import CycleCard from '@/components/cards/CycleCard.vue'
 import DecisionCard from '@/components/cards/DecisionCard.vue'
 import PositionCard from '@/components/cards/PositionCard.vue'
+import AIAnalysis from '@/components/market/AIAnalysis.vue'
 
 import { useTrading } from '@/composables/useTrading'
 import { useChartConfig } from '@/composables/useChart'
@@ -548,29 +526,9 @@ watch(selectedSymbol, () => {
 .spread { text-align: center; padding: 6px; font-size: 11px; color: #8b949e; border-top: 1px solid #21262d; border-bottom: 1px solid #21262d; }
 
 .analysis-section {
-  background: #161b22;
-  border: 1px solid #21262d;
   border-radius: 12px;
-  padding: 16px;
+  min-height: 500px;
 }
-.analysis-header h2 { font-size: 16px; color: #e6edf3; margin: 0 0 12px 0; }
-.timeline-track { display: flex; gap: 16px; overflow-x: auto; }
-.timeline-node { display: flex; gap: 8px; min-width: 250px; }
-.node-dot {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-}
-.timeline-node.bullish .node-dot { background: rgba(38, 222, 129, 0.2); border: 2px solid #26de81; color: #26de81; }
-.timeline-node.bearish .node-dot { background: rgba(252, 92, 125, 0.2); border: 2px solid #fc5c7d; color: #fc5c7d; }
-.node-card { flex: 1; padding: 10px; background: #0d1117; border-radius: 8px; }
-.node-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
-.node-type { font-size: 12px; font-weight: 600; }
-.node-time { font-size: 10px; color: #8b949e; }
-.node-metrics { display: flex; gap: 8px; margin-top: 6px; }
-.metric { flex: 1; }
-.metric-label { display: block; font-size: 9px; color: #8b949e; }
-.metric-value { font-size: 11px; font-weight: 600; color: #e6edf3; }
 
 .auto-refresh {
   position: fixed;
