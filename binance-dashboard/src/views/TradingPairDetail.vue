@@ -262,7 +262,7 @@ let refreshInterval = null
 
 let rsiChart = null, macdChart = null
 let rsiLineSeries = null, rsiUpperBand = null, rsiLowerBand = null
-let histogramSeries = null, macdLineSeries = null, signalLineSeries = null
+let histogramSeries = null, macdLineSeries = null, signalLineSeries = null, macdZeroLine = null
 
 const handleSelectSymbol = (symbol) => {
   selectSymbol(symbol)
@@ -334,6 +334,13 @@ const initMACDChart = () => {
     grid: { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
     height: chartHeights.macd
   })
+  // 添加零线（白色虚线）
+  macdZeroLine = macdChart.addLineSeries({
+    color: '#ffffff',
+    lineWidth: 1,
+    lineStyle: 2, // 2 = dashed
+    priceScaleId: 'macd'
+  })
   histogramSeries = macdChart.addHistogramSeries({ priceScaleId: 'histogram' })
   macdLineSeries = macdChart.addLineSeries({ color: '#2196F3', lineWidth: 2, priceScaleId: 'macd' })
   signalLineSeries = macdChart.addLineSeries({ color: '#FF9800', lineWidth: 2, priceScaleId: 'macd' })
@@ -361,7 +368,14 @@ const updateMACDChart = () => {
   const fast = calcEma(12), slow = calcEma(26)
   const macdLine = closes.map((_, i) => fast[i] - slow[i])
 
-  macdLineSeries.setData(macdLine.map((v, i) => ({ time: klines.value[i][0] / 1000, value: v })).filter(d => !isNaN(d.value)))
+  const times = klines.value.map(k => k[0] / 1000)
+
+  // 设置零线数据
+  if (macdZeroLine) {
+    macdZeroLine.setData(times.map(t => ({ time: t, value: 0 })))
+  }
+
+  macdLineSeries.setData(macdLine.map((v, i) => ({ time: times[i], value: v })).filter(d => !isNaN(d.value)))
   if (macdChart) macdChart.timeScale().fitContent()
 }
 

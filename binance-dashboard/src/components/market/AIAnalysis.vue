@@ -135,6 +135,65 @@
           </div>
         </div>
 
+        <!-- 清算地图分析 -->
+        <div class="liquidation-section">
+          <h4>🔥 清算地图</h4>
+          <div class="liquidation-overview">
+            <div class="liquidation-summary">
+              <div class="summary-item">
+                <span class="summary-label">多头清算</span>
+                <span class="summary-value long">${{ analysis.liquidation.totalLong }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">空头清算</span>
+                <span class="summary-value short">${{ analysis.liquidation.totalShort }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">净方向</span>
+                <span :class="['summary-value', analysis.liquidation.netDirection > 0 ? 'long' : 'short']">
+                  {{ analysis.liquidation.netDirection > 0 ? '偏多' : '偏空' }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="liquidation-levels">
+            <div class="level-group">
+              <div class="level-header">
+                <span class="level-title">📍 最近多头清算位置</span>
+                <span class="level-distance">{{ analysis.liquidation.nearestLongDistance }}%</span>
+              </div>
+              <div class="level-list">
+                <div v-for="level in analysis.liquidation.longLevels" :key="level.price" class="liquidation-level">
+                  <span class="price">${{ level.price }}</span>
+                  <div class="amount-bar">
+                    <div class="bar-fill long" :style="{ width: level.strength + '%' }"></div>
+                  </div>
+                  <span class="amount">${{ level.amount }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="level-group">
+              <div class="level-header">
+                <span class="level-title">📍 最近空头清算位置</span>
+                <span class="level-distance">{{ analysis.liquidation.nearestShortDistance }}%</span>
+              </div>
+              <div class="level-list">
+                <div v-for="level in analysis.liquidation.shortLevels" :key="level.price" class="liquidation-level">
+                  <span class="price">${{ level.price }}</span>
+                  <div class="amount-bar">
+                    <div class="bar-fill short" :style="{ width: level.strength + '%' }"></div>
+                  </div>
+                  <span class="amount">${{ level.amount }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="liquidation-insight">
+            <span class="insight-icon">💡</span>
+            <span class="insight-text">{{ analysis.liquidation.insight }}</span>
+          </div>
+        </div>
+
         <!-- 宏观经济影响 -->
         <div class="macro-section">
           <h4>🌍 宏观经济</h4>
@@ -281,6 +340,25 @@ const analysis = ref({
       completion: 75,
       advice: '旗形整理接近尾声，关注突破方向确认'
     }
+  },
+  // 清算地图
+  liquidation: {
+    totalLong: '2.85B',
+    totalShort: '1.92B',
+    netDirection: 1, // 1=偏多清算, -1=偏空清算
+    nearestLongDistance: 3.2, // 距离最近多头清算位的百分比
+    nearestShortDistance: 5.8,
+    longLevels: [
+      { price: '68,500', amount: '520M', strength: 85 },
+      { price: '67,800', amount: '380M', strength: 62 },
+      { price: '66,200', amount: '290M', strength: 48 }
+    ],
+    shortLevels: [
+      { price: '73,500', amount: '410M', strength: 70 },
+      { price: '75,000', amount: '350M', strength: 60 },
+      { price: '78,000', amount: '280M', strength: 48 }
+    ],
+    insight: '下方68,500附近存在较大多头清算聚集，若跌破可能触发连锁清算；上方73,500附近空头清算较多，突破后有望加速上涨。'
   },
   // 宏观经济因素
   macroFactors: [
@@ -715,6 +793,156 @@ const runAnalysis = async () => {
   padding: 6px;
   background: #161b22;
   border-radius: 4px;
+  font-size: 10px;
+  color: #7d8590;
+  line-height: 1.4;
+}
+
+/* 清算地图 */
+.liquidation-section {
+  margin-bottom: 12px;
+}
+
+.liquidation-section h4 {
+  font-size: 12px;
+  color: #e6edf3;
+  margin: 0 0 6px 0;
+}
+
+.liquidation-overview {
+  margin-bottom: 8px;
+}
+
+.liquidation-summary {
+  display: flex;
+  gap: 8px;
+}
+
+.summary-item {
+  flex: 1;
+  padding: 6px 8px;
+  background: #0d1117;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.summary-label {
+  display: block;
+  font-size: 9px;
+  color: #7d8590;
+  margin-bottom: 2px;
+}
+
+.summary-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+
+.summary-value.long {
+  color: #3fb950;
+}
+
+.summary-value.short {
+  color: #f85149;
+}
+
+.liquidation-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.level-group {
+  background: #0d1117;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+.level-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.level-title {
+  font-size: 10px;
+  color: #e6edf3;
+  font-weight: 500;
+}
+
+.level-distance {
+  font-size: 9px;
+  padding: 2px 6px;
+  background: #21262d;
+  border-radius: 3px;
+  color: #7d8590;
+}
+
+.level-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.liquidation-level {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+}
+
+.liquidation-level .price {
+  width: 60px;
+  color: #e6edf3;
+  font-weight: 500;
+}
+
+.amount-bar {
+  flex: 1;
+  height: 6px;
+  background: #21262d;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.bar-fill.long {
+  background: linear-gradient(90deg, #3fb950, #26de81);
+}
+
+.bar-fill.short {
+  background: linear-gradient(90deg, #f85149, #fc5c7d);
+}
+
+.liquidation-level .amount {
+  width: 50px;
+  text-align: right;
+  color: #7d8590;
+}
+
+.liquidation-insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px;
+  background: rgba(240, 185, 11, 0.1);
+  border-radius: 6px;
+  border-left: 2px solid #f0b90b;
+}
+
+.insight-icon {
+  font-size: 12px;
+}
+
+.insight-text {
   font-size: 10px;
   color: #7d8590;
   line-height: 1.4;
